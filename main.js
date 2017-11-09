@@ -4,6 +4,9 @@ const app = electron.app
 // Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow
 
+const protocol = electron.protocol;
+const fs = require('fs');
+
 const path = require('path')
 const url = require('url')
 
@@ -11,19 +14,21 @@ const url = require('url')
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow
 
+const customScheme = 'httpz';
+protocol.registerStandardSchemes([customScheme], { secure: false });
+
 function createWindow () {
   // Create the browser window.
   mainWindow = new BrowserWindow({width: 800, height: 600})
 
-  // and load the index.html of the app.
-  mainWindow.loadURL(url.format({
-    pathname: path.join(__dirname, 'index.html'),
-    protocol: 'file:',
-    slashes: true
-  }))
+  // this URL will fail:
+  const urlToLoad = 'httpz://localhost:8080/index.html';
+  // this URL will pass:
+  // const urlToLoad = 'httpz://localhost/index.html';
+  mainWindow.loadURL(urlToLoad)
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
@@ -34,10 +39,22 @@ function createWindow () {
   })
 }
 
+function handleHttpzRequest() {
+	protocol.registerBufferProtocol(customScheme, function (request, callback) {
+		const urlParts = url.parse(request.url);
+		const pathToIndex = path.join(__dirname, urlParts.pathname);
+		const indexFile = fs.readFileSync(pathToIndex);
+		callback({ data: indexFile, mime: 'text/html' });
+	});
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow)
+app.on('ready', function () {
+	createWindow()
+	handleHttpzRequest();
+})
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function () {

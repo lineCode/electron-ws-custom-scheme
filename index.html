@@ -11,9 +11,20 @@
     Chromium <script>document.write(process.versions.chrome)</script>,
     and Electron <script>document.write(process.versions.electron)</script>.
 
+    <p id="countdown"></p>
+
     <script>
-      // You can also require other files to run in this process
-      require('./renderer.js')
+	  function doCountdown(secondsLeft) {
+		  document.getElementById('countdown').innerText = `Crashing in ${secondsLeft} seconds`;
+		  if (secondsLeft >= 0) {
+		    setTimeout(doCountdown.bind(undefined, --secondsLeft), 1000);
+		  } else {
+        new WebSocket('ws://127.0.0.1:4567');
+		  }
+		}
+
+	  let countdown = 5;
+	  doCountdown(5);
     </script>
   </body>
 </html>
